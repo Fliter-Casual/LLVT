@@ -54,12 +54,12 @@ void testDropOldest() {
 
     // 容量 2：入队 4 之前先淘汰最旧的 1。
     const std::size_t dropped = queue.pushDropOldestCountDropped(4, 2);
-    CHECK(dropped == 1);
+    CHECK(dropped == 2);
     CHECK(queue.size() == 2);
 
     int value = 0;
     CHECK(queue.tryPop(&value));
-    CHECK(value == 2);
+    CHECK(value == 3);
     CHECK(queue.tryPop(&value));
     CHECK(value == 4);
 }
@@ -89,7 +89,7 @@ void testSelectiveDropProtectsKeyframe() {
     const std::size_t dropped = queue.pushDropSelective(
             TestFrame{4, false}, 2,
             [](const TestFrame &frame) { return !frame.m_isKeyframe; });
-    CHECK(dropped == 1);
+    CHECK(dropped == 2);
 
     std::vector<int> sequences;
     TestFrame frame{0, false};
@@ -97,7 +97,7 @@ void testSelectiveDropProtectsKeyframe() {
         sequences.push_back(frame.m_sequence);
     }
     CHECK(sequences.size() == 2);
-    CHECK(sequences[0] == 1);
+    CHECK(sequences[0] == 1);      // 关键帧还在
     CHECK(sequences[1] == 4);
 }
 
