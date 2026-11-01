@@ -114,11 +114,21 @@ public:
         m_window.record(jitterMs);
         assessNetworkQuality(fragmentLossPercent, skipRatePercent);
 
-        // 样本不足时只攒数据：P95 在 10 个样本以下波动极大，据此切换会来回跳。
-        if (m_autoMode && m_window.sampleCount() >= kAutoModeMinSamples) {
-            evaluateStateTransition(jitterMs, nowNs);
-            applyQualityParams();
+        // 固定模式：不计数、不切换、也不按质量调参。
+        if (!m_autoMode) {
+            return;
         }
+
+        // 连续次数每个样本都累计，不受下面的样本数门槛约束：门槛的含义是
+        // 「P95 还没统计意义，先别做判定」，不该把连续计数一起吞掉——否则
+        // 「连续 10 次」实际要等到第 19 个样本才生效，量出来的反应时间是错的。
+        trackJitterStreak(jitterMs);
+
+         if (m_window.sampleCount() < kAutoModeMinSamples) {
+            return;
+        }
+        evaluateStateTransition(nowNs);
+        applyQualityParams();
     }
 
     // 对外统一纳秒：调用方算截止时刻不用再做单位换算。
@@ -224,6 +234,29 @@ private:
         }
     }
 
+    // 按当前模式维护「连续满足条件的样本数」。出现一个反向样本就清零——
+    // 这正是「连续」与「累计」的区别，也是抗毛刺的全部来源。
+    void trackJitterStreak(double jitterMs) {
+        switch (m_activeMode) {
+            case JitterBufferMode::Bypass:
+                m_consecutiveHighJitter = jitterMs > kBypassToLowLatencyJitterMs
+                        ? m_consecutiveHighJitter + 1
+                        : 0;
+                break;
+            case JitterBufferMode::LowLatency:
+                m_consecutiveLowJitter = jitterMs < kLowLatencyToBypassJitterMs
+                        ? m_consecutiveLowJitter + 1
+                        : 0;
+                break;
+            case JitterBufferMode::Smooth:
+                // Smooth 的降档由 P95 持续时长决定，不靠逐样本计数。
+                m_consecutiveHighJitter = 0;
+                m_consecutiveLowJitter = 0;
+                break;
+        }
+    }
+
+
     // 四条迁移规则（阈值见文件顶部常量）：
     //   Bypass     → LowLatency：连续 10 次 jitter > 1ms
     //   LowLatency → Bypass    ：连续 20 次 jitter < 0.5ms
@@ -232,16 +265,11 @@ private:
     //
     // 两个方向的判据故意不同：快速档位迁移看单次抖动（要反应快），
     // 慢速档位迁移看窗口 P95（要平滑）。混用是有意的，不是疏漏。
-    void evaluateStateTransition(double jitterMs, std::uint64_t nowNs) {
+    void evaluateStateTransition(std::uint64_t nowNs) {
         const double kP95 = jitterP95Ms();
 
         switch (m_activeMode) {
             case JitterBufferMode::Bypass:
-                if (jitterMs > kBypassToLowLatencyJitterMs) {
-                    ++m_consecutiveHighJitter;
-                } else {
-                    m_consecutiveHighJitter = 0;
-                }
                 if (m_consecutiveHighJitter >= kBypassToLowLatencySamples) {
                     m_activeMode = JitterBufferMode::LowLatency;
                     m_consecutiveHighJitter = 0;
@@ -251,16 +279,11 @@ private:
                 break;
 
             case JitterBufferMode::LowLatency:
-                if (jitterMs < kLowLatencyToBypassJitterMs) {
-                    ++m_consecutiveLowJitter;
-                } else {
-                    m_consecutiveLowJitter = 0;
-                }
                 if (m_consecutiveLowJitter >= kLowLatencyToBypassSamples) {
                     m_activeMode = JitterBufferMode::Bypass;
                     m_consecutiveLowJitter = 0;
                     m_consecutiveHighJitter = 0;
-                    // 已经降到 Bypass，本轮不再评估上升级，避免同一帧里连跳两档。
+                    // 已经降到 Bypass，本轮不再评估升级，避免同一帧里连跳两档。
                     break;
                 }
                 // 用一个 bool 实现「连续两次」：第一次超阈值置位，第二次仍
