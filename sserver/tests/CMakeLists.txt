@@ -47,3 +47,9 @@ add_server_unit_test(ThreadSafeQueueTest.cpp thread_safe_queue_test "unit;base;c
 
 # 测试基础帧模型（标签：单元测试、基础模块）
 add_server_unit_test(BaseFrameModelTest.cpp base_frame_model_test "unit;base" sserver::base)
+
+# 注册 MonotonicClock (单调时钟) 的单元测试用例
+add_server_unit_test(MonotonicClockTest.cpp monotonic_clock_test "unit;base;clock" sserver::base)
+
+# 注册 LatencyRecorder (延迟记录器) 的单元测试用例
+add_server_unit_test(LatencyRecorderTest.cpp latency_recorder_test "unit;base;stats" sserver::base)
