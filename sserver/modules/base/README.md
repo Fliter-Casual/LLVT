@@ -11,6 +11,8 @@
 | `RawVideoFrame.h` | 原始帧（自有字节 / mmap 零拷贝引用 / DMA-BUF 句柄）+ 只读视图 + RAII 归还钩子 |
 | `EncodedFrame.h` | 编码帧：序号、子流标识、采集/编码时间戳、关键帧标志、Annex B 载荷 |
 | `ThreadSafeQueue.h` | 有界线程安全队列：满丢最旧、按谓词选择性丢弃、限时阻塞弹出 |
+ `MonotonicClock.h` | 统一纳秒时间源 `monotonicNowNs()`，基于 steady_clock |
+| `LatencyRecorder.h/.cpp` | 滑动窗口延迟采样，输出 min/avg/p50/p95/p99/max，支持向全局聚合 |
 
 ## 设计要点
 
