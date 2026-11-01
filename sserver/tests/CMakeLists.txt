@@ -53,3 +53,7 @@ add_server_unit_test(MonotonicClockTest.cpp monotonic_clock_test "unit;base;cloc
 
 # 注册 LatencyRecorder (延迟记录器) 的单元测试用例
 add_server_unit_test(LatencyRecorderTest.cpp latency_recorder_test "unit;base;stats" sserver::base)
+
+# 注册 FrameDiagnostics (帧诊断/元数据) 的单元测试用例
+# 标签 "codec" 意味着这个测试主要针对视频编解码相关的元数据解析和校验
+add_server_unit_test(FrameDiagnosticsTest.cpp frame_diagnostics_test "unit;base;codec" sserver::base)
