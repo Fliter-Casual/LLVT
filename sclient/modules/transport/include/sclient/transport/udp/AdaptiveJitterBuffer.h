@@ -25,14 +25,14 @@ namespace transport {
 
 // 用 P95 而不是均值：抖动分布是长尾的，均值会把偶发尖峰摊平；而用户感知到
 // 的卡顿恰恰来自尾部。P95 表示「95% 的帧都不会比这更抖」。
-constexpr double kQualityPoorP95Ms = 50.0;
-constexpr double kQualityPoorLossPercent = 1.0;
-constexpr double kQualityPoorSkipPercent = 5.0;
-constexpr double kQualityFairP95Ms = 10.0;
-constexpr double kQualityFairLossPercent = 0.1;
-constexpr double kQualityFairSkipPercent = 1.0;
-constexpr double kQualityGoodP95Ms = 1.0;
-constexpr double kQualityGoodLossPercent = 0.01;
+constexpr double kQualityPoorP95Ms = 50.0;      //  P95 最low抖动的阈值
+constexpr double kQualityPoorLossPercent = 1.0; // 丢包率的阈值(poor)
+constexpr double kQualityPoorSkipPercent = 5.0; // 跳帧率的阈值(poor)
+constexpr double kQualityFairP95Ms = 10.0;    //  P95 中等抖动的阈值(fair)
+constexpr double kQualityFairLossPercent = 0.1; // 丢包率的阈值(fair)
+constexpr double kQualityFairSkipPercent = 1.0; // 跳帧率的阈值(fair)
+constexpr double kQualityGoodP95Ms = 1.0;     //  P95 最佳抖动的阈值(good)
+constexpr double kQualityGoodLossPercent = 0.01; // 丢包率的阈值(good)
 
 // ==================== 模式切换阈值 ====================
 
@@ -41,13 +41,13 @@ constexpr double kQualityGoodLossPercent = 0.01;
 //
 // 非对称是关键：升档门槛低（10 次），降档门槛高（20 次 / 持续 3 秒）。
 // 多留一点缓冲的代价是几十毫秒延迟，少留的代价是画面撕裂或停帧。
-constexpr double kBypassToLowLatencyJitterMs = 1.0;
-constexpr int kBypassToLowLatencySamples = 10;
+constexpr double kBypassToLowLatencyJitterMs = 1.0; //  Bypass 到 LowLatency 的抖动阈值
+constexpr int kBypassToLowLatencySamples = 10;    //  Bypass 到 LowLatency 的样本数阈值
 constexpr double kLowLatencyToBypassJitterMs = 0.5;
 constexpr int kLowLatencyToBypassSamples = 20;
-constexpr double kLowLatencyToSmoothP95Ms = 10.0;
-constexpr double kSmoothToLowLatencyP95Ms = 5.0;
-constexpr std::uint64_t kSmoothDowngradeHoldNs = 3ULL * 1000ULL * 1000ULL * 1000ULL;
+constexpr double kLowLatencyToSmoothP95Ms = 10.0; //  LowLatency 到 Smooth 的 P95 抖动阈值
+constexpr double kSmoothToLowLatencyP95Ms = 5.0;   //  Smooth 到 LowLatency 的 P95 抖动阈值
+constexpr std::uint64_t kSmoothDowngradeHoldNs = 3ULL * 1000ULL * 1000ULL * 1000ULL; //  Smooth 到 LowLatency 的降级保持时间阈值
 
 // 窗口样本少于这个数时 P95 没有统计意义，先只攒数据、不做任何切换。
 constexpr std::size_t kAutoModeMinSamples = 10;
@@ -143,10 +143,11 @@ public:
         m_activeMode = mode;
     }
 
+    // 自动模式：根据质量自动切换策略档位，按质量调整等待/帧数上限。
     void enableAutoMode() {
         m_autoMode = true;
     }
-
+    // 重置所有状态，包括窗口、质量评级、连续次数等。
     void reset() {
         m_window = sclient::base::LatencyStats(kJitterWindowSamples, kJitterSnapshotRefreshInterval);
         m_activeMode = JitterBufferMode::Bypass;
@@ -158,16 +159,20 @@ public:
         m_currentMaxWaitMs = m_config.m_baseMaxWaitMs;
         m_currentMaxFrames = m_config.m_baseMaxFrames;
     }
-
+    // 获取当前策略档位、质量评级、自动模式状态。
     JitterBufferMode activeMode() const { return m_activeMode; }
+    // 获取当前质量评级。
     NetworkQuality networkQuality() const { return m_networkQuality; }
+    // 获取当前自动模式状态。
     bool autoMode() const { return m_autoMode; }
 
+    // 获取当前窗口动统计
     double jitterP50Ms() const { return m_window.snapshot().m_p50Ms; }
     double jitterP95Ms() const { return m_window.snapshot().m_p95Ms; }
     double jitterP99Ms() const { return m_window.snapshot().m_p99Ms; }
     std::size_t jitterSamples() const { return m_window.sampleCount(); }
 
+    // 获取当前质量档位的等待上限与帧深上限。
     int qualityMaxWaitMs() const { return m_currentMaxWaitMs; }
     std::size_t qualityMaxFrames() const { return m_currentMaxFrames; }
 
@@ -176,6 +181,7 @@ private:
     void assessNetworkQuality(double lossPercent, double skipPercent) {
         const double kP95 = jitterP95Ms();
 
+        // 质量评级判断逻辑：根据窗口 P95、丢包率、跳帧率判断。
         if (kP95 > kQualityPoorP95Ms ||
             lossPercent > kQualityPoorLossPercent ||
             skipPercent > kQualityPoorSkipPercent) {
@@ -219,6 +225,7 @@ private:
                 break;
         }
 
+        // 质量档位决定等待与深度上限。
         if (targetWaitMs > m_currentMaxWaitMs) {
             const int kGrowthMs = std::max(5, m_currentMaxWaitMs / 2);
             m_currentMaxWaitMs = std::min(targetWaitMs, m_currentMaxWaitMs + kGrowthMs);
