@@ -36,6 +36,7 @@ endfunction()
 # 模块按依赖自底向上添加：base → logger → reactor → appconfig → contracts
 #                → mediasec → capture → encoding → transport → pipeline → control → app
 add_subdirectory(modules/base)
+add_subdirectory(modules/logger)
 
 if(SSERVER_BUILD_TESTS)
     enable_testing()
