@@ -57,3 +57,17 @@ add_server_unit_test(LatencyRecorderTest.cpp latency_recorder_test "unit;base;st
 # 注册 FrameDiagnostics (帧诊断/元数据) 的单元测试用例
 # 标签 "codec" 意味着这个测试主要针对视频编解码相关的元数据解析和校验
 add_server_unit_test(FrameDiagnosticsTest.cpp frame_diagnostics_test "unit;base;codec" sserver::base)
+
+# ==============================================================================
+# 注册 Logger 格式化测试（纯逻辑测试，无实际 I/O）
+# 标签 "logger" 用于筛选日志相关的测试用例
+# 测试重点：logfmt 字段转义、级别映射、自定义格式化标志等
+# ==============================================================================
+add_server_unit_test(LoggerFormatTest.cpp logger_format_test "unit;logger" sserver::logger)
+
+# ==============================================================================
+# 注册 Logger 文件 I/O 测试
+# 标签 "io" 标明该测试涉及磁盘读写，可能需要实际的文件系统环境
+# 测试重点：日志文件轮转、归档重命名、单例生命周期管理等
+# ==============================================================================
+add_server_unit_test(LoggerFileTest.cpp logger_file_test "unit;logger;io" sserver::logger)
