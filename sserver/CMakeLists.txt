@@ -37,6 +37,7 @@ endfunction()
 #                → mediasec → capture → encoding → transport → pipeline → control → app
 add_subdirectory(modules/base)
 add_subdirectory(modules/logger)
+add_subdirectory(modules/appconfig)
 
 if(SSERVER_BUILD_TESTS)
     enable_testing()

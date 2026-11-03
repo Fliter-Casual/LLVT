@@ -71,3 +71,24 @@ add_server_unit_test(LoggerFormatTest.cpp logger_format_test "unit;logger" sserv
 # 测试重点：日志文件轮转、归档重命名、单例生命周期管理等
 # ==============================================================================
 add_server_unit_test(LoggerFileTest.cpp logger_file_test "unit;logger;io" sserver::logger)
+
+# ==============================================================================
+# 注册 AppConfig (配置加载器) 的单元测试用例
+# 标签 "appconfig" 用于单独筛选运行配置解析相关的测试
+# ==============================================================================
+add_server_unit_test(ConfigLoaderTest.cpp config_loader_test "unit;appconfig" sserver::appconfig)
+
+# ==============================================================================
+# 【核心技巧】注入源码根目录的绝对路径
+# 
+# 为什么需要这一步？
+# 单元测试往往是在 `build/` 目录下运行的，如果测试代码里直接写相对路径
+# 比如 "./config/control.toml"，会找不到文件而报错。
+# 
+# 这里利用 CMake 的 target_compile_definitions，在编译这个测试用例时，
+# 动态注入了一个名为 SSERVER_SOURCE_DIR 的 C++ 宏（相当于全局常量）。
+# 路径被硬编码为 "${CMAKE_CURRENT_SOURCE_DIR}/.."，即当前 tests 目录的上一级。
+# ==============================================================================
+# 该用例直接读仓库里的 config/control.toml，需要知道工程根位置。
+target_compile_definitions(config_loader_test PRIVATE
+    SSERVER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/..")
