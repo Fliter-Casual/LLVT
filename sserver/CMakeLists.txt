@@ -38,6 +38,8 @@ endfunction()
 add_subdirectory(modules/base)
 add_subdirectory(modules/logger)
 add_subdirectory(modules/appconfig)
+add_subdirectory(modules/contracts)
+add_subdirectory(modules/control)
 
 if(SSERVER_BUILD_TESTS)
     enable_testing()
