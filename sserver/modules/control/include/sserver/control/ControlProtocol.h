@@ -24,6 +24,7 @@ namespace control {
 // 在校验之前就为一个畸形连接分配巨量内存。
 constexpr std::size_t kAbsoluteMaxControlLineLength = 4096;
 
+// 控制命令类型枚举
 enum class CommandType {
     Status,
     Start,

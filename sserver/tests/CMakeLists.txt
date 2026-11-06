@@ -92,3 +92,4 @@ add_server_unit_test(ConfigLoaderTest.cpp config_loader_test "unit;appconfig" ss
 # 该用例直接读仓库里的 config/control.toml，需要知道工程根位置。
 target_compile_definitions(config_loader_test PRIVATE
     SSERVER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/..")
+add_server_unit_test(ControlProtocolTest.cpp control_protocol_test "unit;control;protocol" sserver::control)
