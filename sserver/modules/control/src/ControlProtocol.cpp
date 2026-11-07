@@ -23,6 +23,7 @@ namespace {
 
 // char 是否带符号由平台决定：先转 unsigned char 再比范围，否则非 ASCII
 // 字节会被当成负数，绕过 < 0x20 的判断。
+// 是否为可见的 ASCII 字符
 bool isVisibleAscii(const std::string &value) {
     for (char character : value) {
         const unsigned char byte = static_cast<unsigned char>(character);
@@ -395,6 +396,10 @@ std::string formatOkResponse(const contracts::StreamingStatus &status,
     return "OK " + formatStatusFields(status, includeMediaKey);
 }
 
+// 格式化 caps 响应
+// @param availableMediaProfiles 可用的媒体配置文件列表
+// @param status 流媒体状态
+// @return 格式化后的 caps 响应字符串
 std::string formatCapsResponse(const std::vector<std::string> &availableMediaProfiles,
                                const contracts::StreamingStatus &status) {
     std::string joined;
@@ -410,6 +415,11 @@ std::string formatCapsResponse(const std::vector<std::string> &availableMediaPro
     return "OK media_profiles=" + joined + " " + formatStatusFields(status);
 }
 
+// 格式化错误响应
+// @param code 错误码
+// @param message 错误描述
+// @param status 流媒体状态
+// @return 格式化后的错误响应字符串
 std::string formatErrorResponse(const std::string &code,
                                 const std::string &message,
                                 const contracts::StreamingStatus &status) {

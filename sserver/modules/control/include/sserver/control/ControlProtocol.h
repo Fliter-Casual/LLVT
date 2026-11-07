@@ -22,20 +22,20 @@ namespace control {
 // 协议层的绝对上限，与运行期可配置的 max_line_length 构成两级防护：
 // 连接层先用配置值挡住绝大多数超长输入，这里再兜一道，防止读取端
 // 在校验之前就为一个畸形连接分配巨量内存。
-constexpr std::size_t kAbsoluteMaxControlLineLength = 4096;
+constexpr std::size_t kAbsoluteMaxControlLineLength = 4096; // 4KB
 
 // 控制命令类型枚举
 enum class CommandType {
-    Status,
-    Start,
-    Stop,
-    Keyframe,
-    Caps,
+    Status,     /**< 查询状态 */
+    Start,      /**< 启动流 */
+    Stop,       /**< 停止流 */
+    Keyframe,   /**< 发送关键帧 */
+    Caps,       /**< 查询可用档位 */
 };
 
 // 一个结构体承载全部命令的参数，靠 m_type 决定哪些字段有效。
 struct ControlCommand {
-    CommandType m_type = CommandType::Status;
+    CommandType m_type = CommandType::Status; /**< 命令类型 */
     contracts::StreamingRequest m_request; /**< 仅 Start 填充 */
     std::string m_targetSession;            /**< STATUS / STOP / KEYFRAME 的目标会话 */
     int m_mediaPort = 0;                    /**< 仅 STATUS：客户端媒体源端口，0 表示未携带 */
