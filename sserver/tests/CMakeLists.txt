@@ -93,3 +93,4 @@ add_server_unit_test(ConfigLoaderTest.cpp config_loader_test "unit;appconfig" ss
 target_compile_definitions(config_loader_test PRIVATE
     SSERVER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/..")
 add_server_unit_test(ControlProtocolTest.cpp control_protocol_test "unit;control;protocol" sserver::control)
+add_server_unit_test(StreamProtocolTest.cpp stream_protocol_test "unit;transport;protocol" sserver::transport)
