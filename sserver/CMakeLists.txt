@@ -41,6 +41,8 @@ add_subdirectory(modules/appconfig)
 add_subdirectory(modules/contracts)
 add_subdirectory(modules/control)
 add_subdirectory(modules/transport)
+add_subdirectory(modules/capture)
+add_subdirectory(modules/encoding)
 
 if(SSERVER_BUILD_TESTS)
     enable_testing()

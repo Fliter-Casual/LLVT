@@ -94,3 +94,9 @@ target_compile_definitions(config_loader_test PRIVATE
     SSERVER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/..")
 add_server_unit_test(ControlProtocolTest.cpp control_protocol_test "unit;control;protocol" sserver::control)
 add_server_unit_test(StreamProtocolTest.cpp stream_protocol_test "unit;transport;protocol" sserver::transport)
+add_server_unit_test(I420ConvertTest.cpp i420_convert_test "unit;encoding" sserver::encoding)
+add_server_unit_test(FormatSelectionPolicyTest.cpp format_selection_policy_test "unit;capture" sserver::capture)
+add_server_unit_test(TokenBucketTest.cpp token_bucket_test "unit;transport;pacing" sserver::transport)
+add_server_unit_test(UdpSenderLoopbackTest.cpp udp_sender_loopback_test "unit;transport;udp" sserver::transport)
+# 环回收发需要真实套接字，个别 CI 环境禁止本地网络：给足超时避免误判。
+set_tests_properties(udp_sender_loopback_test PROPERTIES TIMEOUT 60)
