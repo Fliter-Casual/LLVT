@@ -214,13 +214,15 @@ bool rejectUnknownKeys(const toml::table &table, const std::string &filePath,
 
 bool loadControl(const toml::table &table, const std::string &filePath,
                  ControlConfig *config, std::string *errorMessage) {
-    if (!rejectUnknownKeys(table, filePath, "control", {"port", "max_clients"},
+    if (!rejectUnknownKeys(table, filePath, "control", {"bind_address", "port", "max_clients"},
                            errorMessage)) {
         return false;
     }
     // 端口 0 会让内核随机分配，控制通道的端口是客户端要提前知道的，
     // 随机端口等于没法连，所以下限取 1。
-    return readInt(table, filePath, "control", "port", 1, 65535,
+    return readString(table, filePath, "control", "bind_address", false,
+                      &config->m_bindAddress, errorMessage)
+            && readInt(table, filePath, "control", "port", 1, 65535,
                    &config->m_port, errorMessage)
             && readSize(table, filePath, "control", "max_clients", 1, 64,
                         &config->m_maxClients, errorMessage);

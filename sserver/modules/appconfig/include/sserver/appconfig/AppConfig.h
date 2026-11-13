@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <string>
+#include "sserver/appconfig/CodecConfig.h"
 
 namespace sserver {
 namespace appconfig {
@@ -26,6 +27,7 @@ struct RuntimeConfig {
 };
 
 struct ControlConfig {
+    std::string m_bindAddress = "0.0.0.0"; /**< [control] bind_address */
     int m_port = 9000;              /**< [control] port，控制通道 TCP 监听端口 */
     std::size_t m_maxClients = 16;  /**< [control] max_clients，并发控制连接上限 */
 };
@@ -42,6 +44,7 @@ struct AppConfig {
     RuntimeConfig m_runtime;
     ControlConfig m_control;
     CaptureConfig m_capture;
+    CodecConfig m_codec;
 
     static AppConfig createDefault();
 
