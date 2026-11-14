@@ -4,6 +4,7 @@
 # 多会话共享采集、多档位子流、编码耗时统计等随 app 会话管理一起加。
 add_library(sserver_pipeline STATIC
     src/StreamProducer.cpp
+    src/SyntheticCapture.cpp
 )
 add_library(sserver::pipeline ALIAS sserver_pipeline)
 target_include_directories(sserver_pipeline PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
