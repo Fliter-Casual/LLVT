@@ -129,5 +129,12 @@ bool UdpSender::sendFrame(const base::EncodedFrame &frame,
     return true;
 }
 
+int UdpSender::receiveFeedback(std::uint8_t *buffer, std::size_t capacity, int timeoutMs,
+                               std::string *peerAddress, int *peerPort,
+                               std::string *errorMessage) {
+    return m_socket.recvFrom(buffer, capacity, timeoutMs, peerAddress, peerPort, errorMessage);
+}
+
+
 }  // namespace transport
 }  // namespace sserver
