@@ -62,6 +62,13 @@ public:
                    SendResult *result,
                    std::string *errorMessage);
 
+    // 在同一个套接字上收一条反馈数据报。服务端不需要给每个客户端单独开
+    // 接收端口：客户端把报告发到这个媒体端口，服务端从合法报告里学习
+    // 对端地址，也就顺带完成了地址注册。
+    // @return 字节数；0 表示超时；-1 表示错误
+    int receiveFeedback(std::uint8_t *buffer, std::size_t capacity, int timeoutMs,
+                        std::string *peerAddress, int *peerPort, std::string *errorMessage);
+
 private:
     UdpSenderConfig m_config;
     UdpSocket m_socket;
