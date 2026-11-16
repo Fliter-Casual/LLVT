@@ -13,6 +13,8 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "构建类型" FORCE)
 endif()
 
+find_package(Threads REQUIRED)
+
 option(SCLIENT_BUILD_TESTS "构建单元测试" ON)
 option(SCLIENT_WERROR "把编译警告当作错误" OFF)
 
