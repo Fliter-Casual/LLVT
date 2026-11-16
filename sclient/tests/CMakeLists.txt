@@ -12,3 +12,11 @@ endfunction()
 add_client_unit_test(LatencyStatsTest.cpp latency_stats_test "unit;base;stats" sclient::base)
 add_client_unit_test(AdaptiveJitterBufferTest.cpp adaptive_jitter_buffer_test
         "unit;transport;jitter" sclient::transport)
+add_client_unit_test(StreamProtocolMirrorTest.cpp stream_protocol_mirror_test
+        "unit;transport;protocol" sclient::transport)
+add_client_unit_test(UdpFrameAssemblerTest.cpp udp_frame_assembler_test
+        "unit;transport;assembly" sclient::transport)
+add_client_unit_test(UdpReceiverTest.cpp udp_receiver_test
+        "integration;transport;udp" sclient::transport)
+set_tests_properties(udp_receiver_test PROPERTIES TIMEOUT 60)
+
