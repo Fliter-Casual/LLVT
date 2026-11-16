@@ -43,6 +43,8 @@ add_subdirectory(modules/control)
 add_subdirectory(modules/transport)
 add_subdirectory(modules/capture)
 add_subdirectory(modules/encoding)
+add_subdirectory(modules/pipeline)
+add_subdirectory(modules/app)
 
 if(SSERVER_BUILD_TESTS)
     enable_testing()
