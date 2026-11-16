@@ -98,5 +98,11 @@ add_server_unit_test(I420ConvertTest.cpp i420_convert_test "unit;encoding" sserv
 add_server_unit_test(FormatSelectionPolicyTest.cpp format_selection_policy_test "unit;capture" sserver::capture)
 add_server_unit_test(TokenBucketTest.cpp token_bucket_test "unit;transport;pacing" sserver::transport)
 add_server_unit_test(UdpSenderLoopbackTest.cpp udp_sender_loopback_test "unit;transport;udp" sserver::transport)
+add_server_unit_test(KeyframeRecoverySignalTest.cpp keyframe_recovery_signal_test "unit;base" sserver::base)
+add_server_unit_test(StreamProducerTest.cpp stream_producer_test "unit;pipeline;concurrency" sserver::pipeline)
+add_server_unit_test(ServerAppTest.cpp server_app_test "integration;app;udp" sserver::app)
+set_tests_properties(server_app_test PROPERTIES TIMEOUT 60)
+add_server_unit_test(ControlServerTest.cpp control_server_test "integration;control;tcp" sserver::control)
+set_tests_properties(control_server_test PROPERTIES TIMEOUT 60)
 # 环回收发需要真实套接字，个别 CI 环境禁止本地网络：给足超时避免误判。
 set_tests_properties(udp_sender_loopback_test PROPERTIES TIMEOUT 60)
