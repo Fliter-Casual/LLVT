@@ -37,6 +37,8 @@ endfunction()
 # 当前只有 base 与 transport 的纯策略部分（不依赖 Qt / FFmpeg）。
 add_subdirectory(modules/base)
 add_subdirectory(modules/transport)
+add_subdirectory(modules/control)
+add_subdirectory(modules/app)
 
 if(SCLIENT_BUILD_TESTS)
     enable_testing()
