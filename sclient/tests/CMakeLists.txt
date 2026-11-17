@@ -19,4 +19,8 @@ add_client_unit_test(UdpFrameAssemblerTest.cpp udp_frame_assembler_test
 add_client_unit_test(UdpReceiverTest.cpp udp_receiver_test
         "integration;transport;udp" sclient::transport)
 set_tests_properties(udp_receiver_test PROPERTIES TIMEOUT 60)
-
+add_client_unit_test(ControlResponseTest.cpp control_response_test
+        "unit;control;protocol" sclient::control)
+add_client_unit_test(ControlClientTest.cpp control_client_test
+        "integration;control;tcp" sclient::control)
+set_tests_properties(control_client_test PROPERTIES TIMEOUT 60)
