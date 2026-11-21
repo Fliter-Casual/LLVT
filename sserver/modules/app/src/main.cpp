@@ -15,6 +15,7 @@
 #include "sserver/app/ServerApp.h"
 #include "sserver/appconfig/AppConfig.h"
 #include "sserver/control/ControlServer.h"
+#include "sserver/encoding/X264Encoder.h"
 #include "sserver/logger/Logger.h"
 
 namespace {
@@ -68,6 +69,14 @@ int main(int argc, char **argv) {
     }
 
     sserver::logger::Logger::setVerbose(config.m_runtime.m_logVerbose);
+
+    // 构建时没链接 libx264 的话，码流是合成替身、客户端解不出来。
+    // 这种"能跑但看不出为什么"的状态最浪费时间，所以启动就说清楚。
+    if (!sserver::encoding::x264Available()) {
+        std::fprintf(stderr,
+                     "warning: built without libx264; the synthetic encoder will be used "
+                     "and streams are NOT decodable. Install libx264-dev and rebuild.\n");
+    }
 
     sserver::app::ServerApp server(config);
 

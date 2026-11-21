@@ -18,6 +18,7 @@
 #include "sclient/control/ControlClient.h"
 #include "sclient/transport/protocol/StreamProtocol.h"
 #include "sclient/transport/udp/UdpReceiver.h"
+#include "sclient/decoding/VideoDecoder.h"
 
 namespace {
 
@@ -38,6 +39,7 @@ void printUsage(const char *program) {
                  "  --control-port  控制端口，默认 9000\n"
                  "  --session       会话号，默认 cli-1\n"
                  "  --frames        收到这么多帧后退出，0 表示一直收（默认 0）\n",
+                 "  --no-decode     只收流不解码（用于排查是收流还是解码的问题）\n",
                  program);
 }
 
@@ -73,6 +75,7 @@ int main(int argc, char **argv) {
     int controlPort = 9000;
     std::string sessionId = "cli-1";
     int maxFrames = 0;
+    bool decodeRequested = true;
     for (int index = 1; index < argc; ++index) {
         const char *argument = argv[index];
         if (std::strcmp(argument, "--host") == 0 && index + 1 < argc) {
@@ -83,6 +86,8 @@ int main(int argc, char **argv) {
             sessionId = argv[++index];
         } else if (std::strcmp(argument, "--frames") == 0 && index + 1 < argc) {
             maxFrames = std::atoi(argv[++index]);
+        } else if (std::strcmp(argument, "--no-decode") == 0) {
+            decodeRequested = false;
         } else {
             printUsage(argv[0]);
             return 2;
@@ -139,11 +144,33 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    // 解码器按服务端回显的 codec 初始化。构建时没链接 FFmpeg 时降级为
+    // 只收流——收流和解码是两条独立的链路，能收不代表能解，这里分开报告。
+    sclient::decoding::VideoDecoder decoder;
+    bool decodeEnabled = decodeRequested && sclient::decoding::decodingAvailable();
+    if (decodeRequested && !sclient::decoding::decodingAvailable()) {
+        std::fprintf(stderr, "warning: built without ffmpeg; decoding disabled\n");
+    }
+    if (decodeEnabled) {
+        const std::string codecName = response.field("codec").empty()
+                ? std::string("h264")
+                : response.field("codec");
+        std::string decodeError;
+        if (!decoder.initialize(codecName, &decodeError)) {
+            std::fprintf(stderr, "decoder init failed: %s\n", decodeError.c_str());
+            decodeEnabled = false;
+        }
+    }
+
     // 接收数据。
     // 从服务端接收数据，统计帧数、关键帧数、字节数、重复帧数、无效帧数。
     std::uint64_t frames = 0;
     std::uint64_t keyframes = 0;
     std::uint64_t bytes = 0;
+    std::uint64_t decodedFrames = 0;
+    int decodedWidth = 0;
+    int decodedHeight = 0;
+    bool decodeWarningShown = false;
     std::uint64_t lastLeaseNs = sclient::base::monotonicNowNs();
     std::uint64_t lastStatsNs = lastLeaseNs;
     std::uint64_t framesAtLastStats = 0;
@@ -158,6 +185,25 @@ int main(int argc, char **argv) {
             bytes += frame.m_payload.size();
             if ((frame.m_metadata.m_frameFlags & 1U) != 0) {
                 ++keyframes;
+            }
+            if (decodeEnabled) {
+                std::vector<sclient::decoding::DecodedFrame> decodedOutput;
+                std::string decodeError;
+                if (decoder.decodePacket(frame.m_payload.data(), frame.m_payload.size(),
+                                          &decodedOutput, &decodeError)) {
+                    if (!decodedOutput.empty()) {
+                        decodedFrames += decodedOutput.size();
+                        if (decodedWidth == 0) {
+                            decodedWidth = decodedOutput.back().m_width;
+                            decodedHeight = decodedOutput.back().m_height;
+                        }
+                    }
+                } else if (!decodeWarningShown && !decodeError.empty()) {
+                    // 合成码流或参数集缺失时解不出来是预期内的，只提示一次，
+                    // 避免每帧刷屏。
+                    std::fprintf(stderr, "decode warning: %s\n", decodeError.c_str());
+                    decodeWarningShown = true;
+                }
             }
         }
 
@@ -176,13 +222,19 @@ int main(int argc, char **argv) {
         }
         if (now - lastStatsNs >= kStatsIntervalNs) {
             const auto assemblerStats = receiver.stats();
-            std::printf("frames=%llu (+%llu/s) keyframes=%llu bytes=%llu dup=%llu invalid=%llu\n",
+            std::printf("frames=%llu (+%llu/s) keyframes=%llu bytes=%llu dup=%llu invalid=%llu",
                         static_cast<unsigned long long>(frames),
                         static_cast<unsigned long long>(frames - framesAtLastStats),
                         static_cast<unsigned long long>(keyframes),
                         static_cast<unsigned long long>(bytes),
                         static_cast<unsigned long long>(assemblerStats.m_duplicateFragments),
                         static_cast<unsigned long long>(assemblerStats.m_invalidFragments));
+            if (decodeEnabled) {
+                std::printf(" decoded=%llu res=%dx%d decode_err=%d",
+                            static_cast<unsigned long long>(decodedFrames),
+                            decodedWidth, decodedHeight, decoder.decodeErrorCount());
+            }
+            std::printf("\n");
             std::fflush(stdout);
             framesAtLastStats = frames;
             lastStatsNs = now;
@@ -200,9 +252,10 @@ int main(int argc, char **argv) {
     }
     control.close();
 
-    std::printf("done: frames=%llu keyframes=%llu bytes=%llu\n",
+    std::printf("done: frames=%llu keyframes=%llu bytes=%llu decoded=%llu\n",
                 static_cast<unsigned long long>(frames),
                 static_cast<unsigned long long>(keyframes),
-                static_cast<unsigned long long>(bytes));
+                static_cast<unsigned long long>(bytes),
+                static_cast<unsigned long long>(decodedFrames));
     return frames > 0 ? 0 : 1;
 }

@@ -34,6 +34,9 @@ struct ServerAppConfig {
     int m_width = 640;
     int m_height = 480;
     int m_fps = 25;
+    // 强制使用合成编码器。测试需要可预测的定长码流；生产上由构建时是否
+    // 链接 libx264 决定（默认 auto）。
+    bool m_forceSyntheticEncoder = false;
 };
 
 // 会话快照：给测试和诊断用，避免把内部结构暴露出去。

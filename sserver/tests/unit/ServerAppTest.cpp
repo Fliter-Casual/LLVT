@@ -34,6 +34,10 @@ ServerAppConfig makeAppConfig() {
     config.m_height = 120;
     config.m_fps = 25;
     config.m_fragmentPayloadBytes = 1200;
+    // 服务端客户端开启连接验证成功
+    // 本用例断言合成编码器的定长输出（1500 字节、可预测头部），
+    // 所以固定的编码器必须是合成替身，不能随构建是否链接 libx264 而变。
+    config.m_forceSyntheticEncoder = true;
     return config;
 }
 

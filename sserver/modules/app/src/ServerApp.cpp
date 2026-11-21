@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "sserver/base/MonotonicClock.h"
+#include "sserver/encoding/X264Encoder.h"
 #include "sserver/pipeline/SyntheticCapture.h"
 #include "sserver/transport/protocol/StreamProtocol.h"
 
@@ -131,7 +132,14 @@ bool ServerApp::startStreaming(const contracts::StreamingRequest &request,
 
     auto source = std::make_unique<pipeline::SyntheticFrameSource>(
             m_appConfig.m_width, m_appConfig.m_height, m_appConfig.m_fps);
-    auto encoder = std::make_unique<pipeline::SyntheticEncoder>();
+    // 有 libx264 就用真编码器（产出可解码的 H.264）；否则用合成替身，
+    // 只用于打通链路。两者的选择在这里统一，上层不需要知道细节。
+    std::unique_ptr<encoding::Encoder> encoder;
+    if (!m_appConfig.m_forceSyntheticEncoder && encoding::x264Available()) {
+        encoder = std::make_unique<encoding::X264Encoder>();
+    } else {
+        encoder = std::make_unique<pipeline::SyntheticEncoder>();
+    }
     session->m_producer = std::make_unique<pipeline::StreamProducer>(
             std::move(source), std::move(encoder), m_config.m_codec);
 
