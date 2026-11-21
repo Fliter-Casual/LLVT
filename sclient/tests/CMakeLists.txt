@@ -24,3 +24,5 @@ add_client_unit_test(ControlResponseTest.cpp control_response_test
 add_client_unit_test(ControlClientTest.cpp control_client_test
         "integration;control;tcp" sclient::control)
 set_tests_properties(control_client_test PROPERTIES TIMEOUT 60)
+add_client_unit_test(VideoDecoderTest.cpp video_decoder_test
+        "unit;decoding" sclient::decoding)
