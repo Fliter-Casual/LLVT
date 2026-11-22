@@ -32,12 +32,23 @@ function(sclient_set_warnings target)
     endif()
 endfunction()
 
+# Qt6 是可选依赖：找到就构建窗口版客户端，找不到只保留命令行版。
+find_package(Qt6 QUIET COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets)
+if(Qt6_FOUND)
+    set(SCLIENT_HAS_QT TRUE)
+    message(STATUS "sclient: 找到 Qt6 ${Qt6_VERSION}，将构建图形界面")
+else()
+    set(SCLIENT_HAS_QT FALSE)
+    message(STATUS "sclient: 未找到 Qt6，只构建命令行客户端")
+endif()
+
 # 模块按依赖自底向上添加：base → logger → decoding → rendering → transport
 #                → mediasec → recording → control → ui → cli → playback → app
-# 当前只有 base 与 transport 的纯策略部分（不依赖 Qt / FFmpeg）。
+
 add_subdirectory(modules/base)
 add_subdirectory(modules/transport)
 add_subdirectory(modules/decoding)
+add_subdirectory(modules/rendering)
 add_subdirectory(modules/control)
 add_subdirectory(modules/app)
 
