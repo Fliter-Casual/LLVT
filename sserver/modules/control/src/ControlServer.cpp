@@ -212,6 +212,9 @@ void ControlServer::acceptLoop() {
         const int ready = ::select(static_cast<int>(listener + 1), &readSet, nullptr, nullptr,
                                    &timeout);
         if (ready <= 0) {
+            // 空闲周期顺手回收过期会话：客户端崩溃时发不出 STOP，
+            // 租约是唯一能把它名下的线程与端口收回来的机制。
+            m_controller.reapExpiredSessions();
             continue;
         }
         sockaddr_in peer{};
@@ -232,6 +235,25 @@ void ControlServer::handleConnection(std::intptr_t handle, const std::string &pe
     std::string line;
     bool overflow = false;
     while (m_running.load(std::memory_order_acquire)) {
+        // 连接上的读取同样限时 200ms：否则一个安静的客户端会把这条线程
+        // 长期占在 recv 里，回收逻辑（上面 accept 循环里的那次）就跑不到，
+        // 而 GUI 客户端恰恰是"连着但只在每 2 秒发一条 STATUS"的形态。
+        fd_set readSet;
+        FD_ZERO(&readSet);
+        FD_SET(connection, &readSet);
+        timeval timeout{};
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 200 * 1000;
+        const int ready = ::select(static_cast<int>(connection + 1), &readSet, nullptr, nullptr,
+                                   &timeout);
+        if (ready == 0) {
+            m_controller.reapExpiredSessions();
+            continue;
+        }
+        if (ready < 0) {
+            break;
+        }
+
         char character = 0;
         const int received = static_cast<int>(::recv(connection, &character, 1, 0));
         if (received <= 0) {

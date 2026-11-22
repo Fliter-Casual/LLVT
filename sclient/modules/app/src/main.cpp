@@ -19,6 +19,7 @@
 #include "sclient/transport/protocol/StreamProtocol.h"
 #include "sclient/transport/udp/UdpReceiver.h"
 #include "sclient/decoding/VideoDecoder.h"
+#include "sclient/app/GuiRunner.h"
 
 namespace {
 
@@ -38,8 +39,9 @@ void printUsage(const char *program) {
                  "  --host          服务端地址，默认 127.0.0.1\n"
                  "  --control-port  控制端口，默认 9000\n"
                  "  --session       会话号，默认 cli-1\n"
-                 "  --frames        收到这么多帧后退出，0 表示一直收（默认 0）\n",
-                 "  --no-decode     只收流不解码（用于排查是收流还是解码的问题）\n",
+                 "  --frames        收到这么多帧后退出，0 表示一直收（默认 0）\n"
+                 "  --no-decode     只收流不解码（用于排查是收流还是解码的问题）\n"
+                 "  --gui           打开窗口显示画面（需要构建时找到 Qt6）\n",
                  program);
 }
 
@@ -74,8 +76,10 @@ int main(int argc, char **argv) {
     std::string host = "127.0.0.1";
     int controlPort = 9000;
     std::string sessionId = "cli-1";
-    int maxFrames = 0;
+    int maxFrames = 0; // 最大帧数，0 表示一直收
     bool decodeRequested = true;
+    bool guiRequested = false;
+    // 解析命令行参数
     for (int index = 1; index < argc; ++index) {
         const char *argument = argv[index];
         if (std::strcmp(argument, "--host") == 0 && index + 1 < argc) {
@@ -88,10 +92,22 @@ int main(int argc, char **argv) {
             maxFrames = std::atoi(argv[++index]);
         } else if (std::strcmp(argument, "--no-decode") == 0) {
             decodeRequested = false;
+        } else if (std::strcmp(argument, "--gui") == 0) {
+            guiRequested = true;
         } else {
             printUsage(argv[0]);
             return 2;
         }
+    }
+
+    // 处理窗口模式
+    if (guiRequested) {
+        // 窗口模式走独立的实现单元：链接 Qt6 时是真窗口，否则给出明确提示。
+        sclient::app::GuiOptions options;
+        options.m_host = host;
+        options.m_controlPort = controlPort;
+        options.m_sessionId = sessionId;
+        return sclient::app::runGuiClient(options);
     }
 
     // 连接服务端。
