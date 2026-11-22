@@ -136,7 +136,7 @@ public:
 
     // 由控制 worker 调用，绝不能跑在 I/O 反应器上——它可能去停管线。
     // 重新分配过期的流媒体会话
-    virtual void reapExpiredSessions() {}
+    virtual void reapExpiredSessions() = 0;
 
     // 请求关键帧,输入参数: sessionId 会话标识,输出参数: errorMessage 错误信息指针：如果失败，将错误信息写入指针指向的字符串
     // 输出参数: requestId 请求 ID指针：如果成功，将请求 ID写入指针指向的变量

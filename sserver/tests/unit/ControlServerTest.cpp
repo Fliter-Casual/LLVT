@@ -3,6 +3,7 @@
 // 用假控制器把"协议 → 命令分发 → 响应格式化"整条路径跑通，不牵扯会话与
 // 管线；真实会话链路由 server_app_test 覆盖。
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -70,10 +71,14 @@ public:
         return true;
     }
 
-    std::atomic<int> m_startCalls{0};
+    // 服务端必须周期性调用它，否则崩溃客户端的会话永远回收不了。
+    void reapExpiredSessions() override { m_reapCalls.fetch_add(1); }
+
+    std::atomic<int> m_startCalls{0}; 
     std::atomic<int> m_stopCalls{0};
     std::atomic<int> m_keyframeCalls{0};
     std::atomic<int> m_leaseRefreshes{0};
+    std::atomic<int> m_reapCalls{0};
     sserver::contracts::StreamingRequest m_lastStart;
     std::string m_lastStopped;
 };
@@ -228,10 +233,41 @@ void testStopIsIdempotent() {
     CHECK(!server.running());
 }
 
+// 租约回收必须真的被周期性调用：客户端崩溃时发不出 STOP，
+// 这是唯一能把它的会话、线程与端口收回来的路径。
+void testReaperRunsPeriodically() {
+    FakeController controller;
+    sserver::control::ControlServerConfig config;
+    config.m_bindAddress = "127.0.0.1";
+    config.m_port = 0;
+    sserver::control::ControlServer server(controller, config);
+
+    std::string error;
+    CHECK(server.start(&error));
+
+    // 空闲（没有客户端连接）时也要回收。
+    std::this_thread::sleep_for(std::chrono::milliseconds(700));
+    CHECK(controller.m_reapCalls.load() >= 2);
+
+    // 更关键的一种：客户端连着但长时间不发命令。GUI 客户端就是这种形态
+    // （只在每 2 秒发一条 STATUS），如果这时回收停摆，崩溃客户端依旧泄漏。
+    ClientHandle client = kInvalidClient;
+    CHECK(clientConnect(server.boundPort(), &client));
+    std::string response;
+    CHECK(requestLine(client, "CAPS", &response));
+    const int beforeIdle = controller.m_reapCalls.load();
+    std::this_thread::sleep_for(std::chrono::milliseconds(700));
+    CHECK(controller.m_reapCalls.load() > beforeIdle);
+
+    closeClient(client);
+    server.stop();
+}
+
 }  // namespace
 
 int main() {
-    testCommandsOverTcp();
-    testStopIsIdempotent();
+    testCommandsOverTcp(); // 测试 TCP 命令。
+    testStopIsIdempotent(); // STOP 是等价的，重复调用不影响状态。
+    testReaperRunsPeriodically(); // 租约回收必须真的被周期性调用。
     return sserver::test::finish("control_server_test");
 }
